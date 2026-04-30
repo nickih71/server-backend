@@ -20,11 +20,43 @@ from .database import Base, engine
 
 app = FastAPI()
 
+from .database import SessionLocal
+from .models import User
+from .auth import hash_password
 
-@app.get("/init-db")
-def init_db():
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from .database import Base, engine, SessionLocal
+from .models import User
+from .auth import hash_password
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create tables
     Base.metadata.create_all(bind=engine)
-    return {"status": "database initialized"}
+
+    # Seed admin user
+    db = SessionLocal()
+    try:
+        admin = db.query(User).filter(User.username == "admin").first()
+        if not admin:
+            admin = User(
+                username="admin",
+                password_hash=hash_password("Admin123!"),
+                role="admin"
+            )
+            db.add(admin)
+            db.commit()
+            print("Admin user created.")
+        else:
+            print("Admin user already exists.")
+    finally:
+        db.close()
+
+    yield  # Application starts here
+
+app = FastAPI(lifespan=lifespan)
+
 
 # -----------------------------
 # CORS
