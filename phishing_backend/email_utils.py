@@ -7,8 +7,8 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 # Mailtrap (Email Testing) credentials
 SMTP_SERVER = "sandbox.smtp.mailtrap.io"
 SMTP_PORT = 2525
-SMTP_USERNAME = "YOUR_MAILTRAP_USERNAME"
-SMTP_PASSWORD = "YOUR_MAILTRAP_PASSWORD"
+SMTP_USERNAME = "50ae6a9c0d5bc1"
+SMTP_PASSWORD = "b31ea839cfb746"
 
 # Jinja2 environment for email templates
 env = Environment(

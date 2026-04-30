@@ -80,7 +80,6 @@ CONGRATS_URL = f"{NETLIFY_BASE}/reported.html"
 # Replace this with your actual Render backend URL
 BACKEND_BASE = "https://server-backend-dz7b.onrender.com"
 
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
