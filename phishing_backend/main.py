@@ -213,6 +213,21 @@ def delete_user(
 
     return {"status": "user deleted", "username": username}
 
+@app.get("/users")
+def get_users(user=Depends(require_admin)):
+    db = SessionLocal()
+    users = db.query(User).all()
+    db.close()
+
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "role": u.role
+        }
+        for u in users
+    ]
+
 
 @app.post("/launch-phishing")
 def launch_phishing(user=Depends(require_admin)):
