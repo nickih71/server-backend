@@ -194,6 +194,20 @@ def create_user(
 
     return {"status": "user created", "username": username, "role": role}
 
+@app.post("/delete-user")
+def delete_user(username: str = Form(...), user=Depends(require_admin)):
+    db = SessionLocal()
+    target = db.query(User).filter(User.username == username).first()
+
+    if not target:
+        db.close()
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.delete(target)
+    db.commit()
+    db.close()
+
+    return {"status": "user deleted", "username": username}
 
 @app.post("/launch-phishing")
 def launch_phishing(user=Depends(require_admin)):
