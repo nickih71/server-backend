@@ -18,11 +18,6 @@ from .jwt_utils import create_access_token, SECRET_KEY, ALGORITHM
 app = FastAPI()
 from .database import Base, engine
 
-@app.get("/init-db")
-def init_db():
-    Base.metadata.create_all(bind=engine)
-    return {"status": "database initialized"}
-
 # -----------------------------
 # CORS
 # -----------------------------
