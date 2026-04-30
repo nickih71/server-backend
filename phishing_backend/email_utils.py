@@ -16,7 +16,6 @@ env = Environment(
     autoescape=select_autoescape(["html", "xml"]),
 )
 
-
 def send_email(to_email: str, base_url: str, token: str):
     template = env.get_template("phishing_email.html")
 
