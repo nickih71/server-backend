@@ -20,9 +20,11 @@ from .database import Base, engine
 
 app = FastAPI()
 
-@app.on_event("startup")
-def startup_event():
+
+@app.get("/init-db")
+def init_db():
     Base.metadata.create_all(bind=engine)
+    return {"status": "database initialized"}
 
 # -----------------------------
 # CORS
