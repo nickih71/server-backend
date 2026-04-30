@@ -1,5 +1,6 @@
 from datetime import datetime
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Form, Depends
 from fastapi.responses import RedirectResponse
@@ -8,28 +9,17 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError
 
-from .database import log_interaction, get_all_interactions, SessionLocal
+from .database import Base, engine, SessionLocal, log_interaction, get_all_interactions
 from .models import Interaction, User
 from .utils import parse_token
 from .auth import hash_password, verify_password
 from .email_utils import send_email
 from .jwt_utils import create_access_token, SECRET_KEY, ALGORITHM
 
-from fastapi import FastAPI
-from .database import Base, engine
 
-app = FastAPI()
-
-from .database import SessionLocal
-from .models import User
-from .auth import hash_password
-
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from .database import Base, engine, SessionLocal
-from .models import User
-from .auth import hash_password
-
+# ---------------------------------------------------------
+# Lifespan: Runs BEFORE the app starts serving requests
+# ---------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create tables
@@ -53,19 +43,24 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    yield  # Application starts here
+    yield  # App starts here
 
+
+# ---------------------------------------------------------
+# FastAPI App
+# ---------------------------------------------------------
 app = FastAPI(lifespan=lifespan)
 
 
-# -----------------------------
+# ---------------------------------------------------------
 # CORS
-# -----------------------------
+# ---------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://127.0.0.1:5500",
         "https://security-awareness-suite-itec490.netlify.app",
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -74,25 +69,24 @@ app.add_middleware(
 
 templates = Jinja2Templates(directory="phishing_backend/templates")
 
-# -----------------------------
-# FRONTEND (NETLIFY) URLS
-# -----------------------------
-NETLIFY_BASE = "https://security-awareness-suite-itec490.netlify.app"
 
+# ---------------------------------------------------------
+# FRONTEND URLS
+# ---------------------------------------------------------
+NETLIFY_BASE = "https://security-awareness-suite-itec490.netlify.app"
 TRAINING_URL = f"{NETLIFY_BASE}/clicked.html"
 CONGRATS_URL = f"{NETLIFY_BASE}/reported.html"
 
-# -----------------------------
-# BACKEND BASE URL (SET AFTER DEPLOY)
-# -----------------------------
-BACKEND_BASE = "https://YOUR-BACKEND-URL.onrender.com"
+# Replace this with your actual Render backend URL
+BACKEND_BASE = "https://server-backend-dz7b.onrender.com"
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
-# -----------------------------
+# ---------------------------------------------------------
 # AUTH HELPERS
-# -----------------------------
+# ---------------------------------------------------------
 def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -107,17 +101,15 @@ def require_admin(user=Depends(get_current_user)):
     return user
 
 
-# -----------------------------
-# HEALTH CHECK
-# -----------------------------
+# ---------------------------------------------------------
+# ROUTES
+# ---------------------------------------------------------
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
 
 
-# -----------------------------
-# SEND TEST EMAIL
-# -----------------------------
 @app.get("/send-test")
 def send_test():
     send_email(
@@ -128,13 +120,9 @@ def send_test():
     return {"status": "sent"}
 
 
-# -----------------------------
-# CLICKED PHISHING LINK
-# -----------------------------
 @app.get("/clicked/{token}")
 def clicked_link(token: str):
     user_id = parse_token(token)
-
     log_interaction(
         Interaction(
             user_id=user_id,
@@ -143,17 +131,12 @@ def clicked_link(token: str):
             timestamp=datetime.utcnow(),
         )
     )
-
     return RedirectResponse(url=TRAINING_URL)
 
 
-# -----------------------------
-# REPORTED PHISHING EMAIL
-# -----------------------------
 @app.get("/report/{token}")
 def report_phishing(token: str):
     user_id = parse_token(token)
-
     log_interaction(
         Interaction(
             user_id=user_id,
@@ -162,13 +145,9 @@ def report_phishing(token: str):
             timestamp=datetime.utcnow(),
         )
     )
-
     return RedirectResponse(url=CONGRATS_URL)
 
 
-# -----------------------------
-# LOGIN
-# -----------------------------
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
@@ -184,23 +163,17 @@ def login(username: str = Form(...), password: str = Form(...)):
     return {"access_token": token, "token_type": "bearer"}
 
 
-# -----------------------------
-# VIEW LOGS (ADMIN ONLY)
-# -----------------------------
 @app.get("/logs")
 def view_logs(user=Depends(require_admin)):
     return get_all_interactions()
 
 
-# -----------------------------
-# CREATE USER (ADMIN ONLY)
-# -----------------------------
 @app.post("/create-user")
 def create_user(
     username: str = Form(...),
     password: str = Form(...),
     role: str = Form("user"),
- #   user=Depends(require_admin),
+    user=Depends(require_admin),
 ):
     db = SessionLocal()
     existing = db.query(User).filter(User.username == username).first()
@@ -223,9 +196,6 @@ def create_user(
     return {"status": "user created", "username": username, "role": role}
 
 
-# -----------------------------
-# LAUNCH PHISHING (ADMIN ONLY)
-# -----------------------------
 @app.post("/launch-phishing")
 def launch_phishing(user=Depends(require_admin)):
     db = SessionLocal()
@@ -238,15 +208,12 @@ def launch_phishing(user=Depends(require_admin)):
                 base_url=BACKEND_BASE,
                 token=f"{u.username}-{int(datetime.utcnow().timestamp())}",
             )
-            time.sleep(1)  # Mailtrap free tier = 1 email/sec
+            time.sleep(1)
 
     db.close()
     return {"status": "phishing emails launched"}
 
 
-# -----------------------------
-# RESET PASSWORD (ADMIN ONLY)
-# -----------------------------
 @app.post("/reset-password")
 def reset_password(
     username: str = Form(...),
