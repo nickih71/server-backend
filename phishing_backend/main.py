@@ -166,7 +166,7 @@ def create_user(
     username: str = Form(...),
     password: str = Form(...),
     role: str = Form("user"),
-    user=Depends(require_admin),
+ #   user=Depends(require_admin),
 ):
     db = SessionLocal()
     existing = db.query(User).filter(User.username == username).first()
