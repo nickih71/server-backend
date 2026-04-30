@@ -40,3 +40,11 @@ def send_email(to_email: str, base_url: str, token: str):
     except Exception as e:
         print("EMAIL ERROR:", e)
     raise
+
+print("Connecting to SMTP...")
+with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+    print("Logging in...")
+    server.login(SMTP_USERNAME, SMTP_PASSWORD)
+    print("Sending email...")
+    server.sendmail(msg["From"], [to_email], msg.as_string())
+    print("Email sent successfully")

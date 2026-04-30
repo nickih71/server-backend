@@ -207,7 +207,7 @@ def launch_phishing(user=Depends(require_admin)):
                 base_url=BACKEND_BASE,
                 token=f"{u.username}-{int(datetime.utcnow().timestamp())}",
             )
-            time.sleep(1)
+            time.sleep(10)
 
     db.close()
     return {"status": "phishing emails launched"}
