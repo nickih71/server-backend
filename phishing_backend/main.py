@@ -15,8 +15,14 @@ from .auth import hash_password, verify_password
 from .email_utils import send_email
 from .jwt_utils import create_access_token, SECRET_KEY, ALGORITHM
 
-app = FastAPI()
+from fastapi import FastAPI
 from .database import Base, engine
+
+app = FastAPI()
+
+@app.on_event("startup")
+def startup_event():
+    Base.metadata.create_all(bind=engine)
 
 # -----------------------------
 # CORS
