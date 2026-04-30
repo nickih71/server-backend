@@ -34,6 +34,7 @@ def send_email(to_email: str, base_url: str, token: str):
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.sendmail(msg["From"], [to_email], msg.as_string())
     except Exception as e:
