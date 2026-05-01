@@ -40,11 +40,11 @@ async def lifespan(app: FastAPI):
             print("Admin user created.")
         else:
             print("Admin user already exists.")
-        scts_user = db.query(User).filter(User.username == "user1scts@gmail.com").first()
+        scts_user = db.query(User).filter(User.username == "safework490.demo@gmail.com").first()
         if not scts_user:
             scts_user = User(
-                username="user1scts@gmail.com",
-                password_hash=hash_password("SctsUser123!"),
+                username="safework490.demo@gmail.com",
+                password_hash=hash_password("Scts_spr26"),
                 role="user"
             )
             db.add(scts_user)
