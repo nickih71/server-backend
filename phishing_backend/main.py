@@ -28,18 +28,18 @@ async def lifespan(app: FastAPI):
     # Seed admin user
     db = SessionLocal()
     try:
-        admin = db.query(User).filter(User.username == "admin").first()
-        if not admin:
-            admin = User(
-                username="admin",
-                password_hash=hash_password("Admin123!"),
-                role="admin"
+        scts_user = db.query(User).filter(User.username == "scts_user").first()
+        if not scts_user:
+            scts_user = User(
+                username="scts_user",
+                password_hash=hash_password("SctsUser123!"),
+                role="user"
             )
-            db.add(admin)
+            db.add(scts_user)
             db.commit()
-            print("Admin user created.")
+            print("SCTS user created.")
         else:
-            print("Admin user already exists.")
+            print("SCTS user already exists.")
     finally:
         db.close()
 
