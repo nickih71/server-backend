@@ -6,3 +6,4 @@ python-jose
 passlib[bcrypt]
 python-multipart
 email-validator
+psycopg2-binary
