@@ -28,6 +28,18 @@ async def lifespan(app: FastAPI):
     # Seed admin user
     db = SessionLocal()
     try:
+        admin = db.query(User).filter(User.username == "admin").first()
+        if not admin:
+            admin = User(
+                username="admin",
+                password_hash=hash_password("Admin123!"),
+                role="admin"
+            )
+            db.add(admin)
+            db.commit()
+            print("Admin user created.")
+        else:
+            print("Admin user already exists.")
         scts_user = db.query(User).filter(User.username == "scts_user").first()
         if not scts_user:
             scts_user = User(
@@ -108,17 +120,6 @@ def require_admin(user=Depends(get_current_user)):
 def health_check():
     return {"status": "ok"}
 
-
-@app.get("/send-test")
-def send_test():
-    send_email(
-        to_email="nicole.hogan@ku.edu",
-        base_url=BACKEND_BASE,
-        token="test123",
-    )
-    return {"status": "sent"}
-
-
 @app.get("/clicked/{token}")
 def clicked_link(token: str):
     user_id = parse_token(token)
@@ -131,7 +132,6 @@ def clicked_link(token: str):
         )
     )
     return RedirectResponse(url=TRAINING_URL)
-
 
 @app.get("/report/{token}")
 def report_phishing(token: str):
@@ -146,7 +146,6 @@ def report_phishing(token: str):
     )
     return RedirectResponse(url=CONGRATS_URL)
 
-
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
@@ -160,74 +159,6 @@ def login(username: str = Form(...), password: str = Form(...)):
     db.close()
 
     return {"access_token": token, "token_type": "bearer"}
-
-
-@app.get("/logs")
-def view_logs(user=Depends(require_admin)):
-    return get_all_interactions()
-
-
-@app.post("/create-user")
-def create_user(
-    username: str = Form(...),
-    password: str = Form(...),
-    role: str = Form("user"),
-    user=Depends(require_admin),
-):
-    db = SessionLocal()
-    existing = db.query(User).filter(User.username == username).first()
-
-    if existing:
-        db.close()
-        raise HTTPException(status_code=400, detail="Username already exists")
-
-    new_user = User(
-        username=username,
-        password_hash=hash_password(password),
-        role=role,
-    )
-
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    db.close()
-
-    return {"status": "user created", "username": username, "role": role}
-
-
-@app.post("/delete-user")
-def delete_user(
-    username: str = Form(...),
-    user=Depends(require_admin)
-):
-    db = SessionLocal()
-    target = db.query(User).filter(User.username == username).first()
-
-    if not target:
-        db.close()
-        raise HTTPException(status_code=404, detail="User not found")
-
-    db.delete(target)
-    db.commit()
-    db.close()
-
-    return {"status": "user deleted", "username": username}
-
-@app.get("/users")
-def get_users(user=Depends(require_admin)):
-    db = SessionLocal()
-    users = db.query(User).all()
-    db.close()
-
-    return [
-        {
-            "id": u.id,
-            "username": u.username,
-            "role": u.role
-        }
-        for u in users
-    ]
-
 
 @app.post("/launch-phishing")
 def launch_phishing(user=Depends(require_admin)):
@@ -247,21 +178,3 @@ def launch_phishing(user=Depends(require_admin)):
     return {"status": "phishing emails launched"}
 
 
-@app.post("/reset-password")
-def reset_password(
-    username: str = Form(...),
-    new_password: str = Form(...),
-    user=Depends(require_admin),
-):
-    db = SessionLocal()
-    target = db.query(User).filter(User.username == username).first()
-
-    if not target:
-        db.close()
-        raise HTTPException(status_code=404, detail="User not found")
-
-    target.password_hash = hash_password(new_password)
-    db.commit()
-    db.close()
-
-    return {"status": "password reset", "username": username}
